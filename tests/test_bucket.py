@@ -14,7 +14,7 @@ class TestBucket(unittest.TestCase):
         """ The the adding of a node to a Bucket. """
 
         bucket = Bucket()
-        node = Node()
+        node = Node(key='node')
 
         self.assertEquals(len(bucket.nodes), 0)
 
@@ -33,10 +33,10 @@ class TestBucket(unittest.TestCase):
         current_time = datetime.datetime.now()
         unix_time = current_time.timestamp()
 
-        node1 = Node(last_seen=unix_time)
-        node2 = Node(last_seen=unix_time - 1)
-        node3 = Node(last_seen=unix_time + 2)
-        node4 = Node(last_seen=unix_time + 1)
+        node1 = Node(key='node1', last_seen=unix_time)
+        node2 = Node(key='node2', last_seen=unix_time - 1)
+        node3 = Node(key='node3', last_seen=unix_time + 2)
+        node4 = Node(key='node4', last_seen=unix_time + 1)
 
         bucket.add(node1)
         bucket.add(node2)
@@ -49,17 +49,17 @@ class TestBucket(unittest.TestCase):
     def test_search_node(self):
         """ Test the searching of a Node in a Bucket. """
 
-        id = "b8942cb015e4905e643d07d5492e46178a1ebe29f8d8ac0da493f2ad1c4f3ced4fabf5e6642e014" \
+        key = "b8942cb015e4905e643d07d5492e46178a1ebe29f8d8ac0da493f2ad1c4f3ced4fabf5e6642e014" \
              "efd6b226c13fb6c94"
 
         bucket = Bucket()
-        node1 = Node(id=id)
-        node2 = Node(id='noid')
+        node1 = Node(key=key)
+        node2 = Node(key='nokey')
 
         bucket.add(node1)
         bucket.add(node2)
 
-        node3 = bucket.search(id)
+        node3 = bucket.search(key)
 
         self.assertEquals(node3, node1)
 
@@ -67,16 +67,16 @@ class TestBucket(unittest.TestCase):
         """ Test the removing of a Node from a Bucket, removing a Node should also return
         that Node. """
 
-        id = "b8942cb015e4905e643d07d5492e46178a1ebe29f8d8ac0da493f2ad1c4f3ced4fabf5e6642e014" \
+        key = "b8942cb015e4905e643d07d5492e46178a1ebe29f8d8ac0da493f2ad1c4f3ced4fabf5e6642e014" \
              "efd6b226c13fb6c94"
 
         bucket = Bucket()
-        node1 = Node(id=id)
-        node2 = Node(id='noid')
+        node1 = Node(key=key)
+        node2 = Node(key='nokey')
 
         bucket.add(node1)
         bucket.add(node2)
 
-        node3 = bucket.remove(id)
+        node3 = bucket.remove(key)
 
         self.assertEquals(node1, node3)
