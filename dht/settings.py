@@ -1,2 +1,3 @@
 
 BUCKET_SIZE = 20
+KEY_SIZE = 512

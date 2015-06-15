@@ -1,4 +1,5 @@
 import datetime
+from dht import settings
 
 
 class Node:
@@ -11,3 +12,10 @@ class Node:
             last_seen = current_time.timestamp()
 
         self.last_seen = last_seen
+
+    def get_bin_key(self):
+        return bin(int(self.key, 16))[2:].zfill(settings.KEY_SIZE)
+
+
+class SelfNode(Node):
+    pass
