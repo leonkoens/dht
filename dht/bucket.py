@@ -6,6 +6,14 @@ class BucketHasSelfException(Exception):
     pass
 
 
+class NodeNotFoundException(Exception):
+    message = 'Node not found'
+
+
+class NodeAlreadyAddedException(Exception):
+    pass
+
+
 
 class Bucket:
     """ A Bucket is a list of sorted Nodes by last_seen. """
@@ -20,17 +28,24 @@ class Bucket:
         """ Add a node to this bucket. """
 
         if self.has_self:
-            raise BucketHasSelfException('This Bucket has SelfNode')
+            raise BucketHasSelfException('This Bucket has SelfNode, split this Bucket.')
 
         if isinstance(node, SelfNode):
             self.has_self = True
 
-        self.nodes.append(node)
-        self.sort()
+        try:
+            self.find_node(node.key)
+            raise NodeAlreadyAddedException()
+        except NodeNotFoundException:
+            self.nodes.append(node)
+            self.sort()
 
-    def search_node(self, key):
-        """ Search and return a Node by key in this Bucket. """
-        return next(node for node in self.nodes if node.key == key)
+    def find_node(self, key):
+        """ Find and return a Node by key in this Bucket. """
+        try:
+            return next(node for node in self.nodes if node.key == key)
+        except StopIteration:
+            raise NodeNotFoundException()
 
     def remove_node(self, key):
         """ Remode and return a Node from this Bucket. """
