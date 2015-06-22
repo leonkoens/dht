@@ -4,7 +4,7 @@ from dht.node import Node, SelfNode
 from dht.routing import BucketTree
 from dht.utils import hash_string
 
-from dht.bucket import NodeAlreadyAddedException
+from dht.bucket import NodeAlreadyAddedException, BucketIsFullException
 from dht import settings
 
 class BucketTreeTest(unittest.TestCase):
@@ -57,3 +57,25 @@ class BucketTreeTest(unittest.TestCase):
         node2 = tree.find_node(key)
 
         self.assertEquals(node1, node2)
+    
+    def test_full_bucket(self):
+
+        tree = self.get_new_tree()
+
+        # This begins with a 1 in binary.
+        key = hash_string('test')
+        dec_key = int(key, 16)
+
+        # Add keys in the same Bucket.
+        for i in range(0, settings.BUCKET_SIZE + settings.BUCKET_REPLACEMENT_CACHE_SIZE):
+            key = hex(dec_key + i)[2:]
+            node = Node(key=key)
+            tree.add_node(node)
+
+        i += 1
+        key = hex(dec_key + i)[2:]
+        node = Node(key=key)
+
+        # Bucket should be full by now.
+        with self.assertRaises(BucketIsFullException):
+            tree.add_node(node)
