@@ -7,6 +7,7 @@ from dht.utils import hash_string
 from dht.bucket import NodeAlreadyAddedException, BucketIsFullException
 from dht import settings
 
+
 class BucketTreeTest(unittest.TestCase):
     """
     BucketTree.find_node(key)
@@ -14,6 +15,7 @@ class BucketTreeTest(unittest.TestCase):
     """
 
     def get_new_tree(self):
+        """ Helper function to get a new BucketTree. """
         tree = BucketTree(SelfNode(key='0'))
         assert len(tree.bucket_node_list) == 1
         return tree
@@ -57,8 +59,10 @@ class BucketTreeTest(unittest.TestCase):
         node2 = tree.find_node(key)
 
         self.assertEquals(node1, node2)
-    
+
     def test_full_bucket(self):
+        """ A Bucket should raise an BucketIsFullException when the Bucket's Node list and
+        replacement cache are full. """
 
         tree = self.get_new_tree()
 
