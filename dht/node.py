@@ -1,11 +1,12 @@
 import datetime
-from dht.utils import hex_to_bin
+
+from .utils import hex_to_bin
 
 
 class Node:
     """ A node (peer) in the DHT. """
 
-    def __init__(self, key, last_seen=None):
+    def __init__(self, key, host=None, port=None, last_seen=None):
         self.key = key
 
         # Set last_seen to now()

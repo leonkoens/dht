@@ -1,5 +1,5 @@
-from dht import settings
-from dht.node import SelfNode
+from .settings import BUCKET_SIZE, BUCKET_REPLACEMENT_CACHE_SIZE
+from .node import SelfNode
 
 
 class BucketHasSelfException(Exception):
@@ -22,8 +22,8 @@ class Bucket:
     """ A Bucket is a list of sorted Nodes by last_seen. """
 
     def __init__(self,
-                 nodes_size=settings.BUCKET_SIZE,
-                 replacement_cache_size=settings.BUCKET_REPLACEMENT_CACHE_SIZE):
+                 nodes_size=BUCKET_SIZE,
+                 replacement_cache_size=BUCKET_REPLACEMENT_CACHE_SIZE):
         """ Init the Bucket. """
         self.nodes = []
         self.nodes_size = nodes_size

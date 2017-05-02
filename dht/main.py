@@ -1,20 +1,29 @@
-from dht.utils import hash_string
-from dht.node import SelfNode
-from dht.routing import BucketTree
-from dht.server import DHTProtocol
+from .utils import hash_string
+from .node import SelfNode
+from .routing import BucketTree
+from .protocol import DHTProtocol
 
 import asyncio
+import argparse
 import random
 import string
 
 
 class DHT:
 
-    def __init__(self):
+    def __init__(self, initial_node=None):
+        self.initial_node = initial_node
+
         self.self_key = self.create_self_key()
         self.self_node = self.create_self_node()
         self.bucket_tree = self.create_bucket_tree()
+
         self.loop = asyncio.get_event_loop()
+
+        self.create_server()
+
+        if self.initial_node is not None:
+            self.connect_to_initial_node()
 
     def create_self_key(self):
         """ Create a key with which we will identify ourself. """
@@ -36,9 +45,19 @@ class DHT:
         """ Create the UDP server to listen for incoming connections. """
 
         listen = self.loop.create_datagram_endpoint(
-            lambda: DHTProtocol(self.bucket_tree), local_addr=('0.0.0.0', 9999))
+            lambda: DHTProtocol(self.bucket_tree, self.loop),
+            local_addr=('0.0.0.0', 9999)
+        )
 
-        transport, protocol = self.loop.run_until_complete(listen)
+        self.loop.run_until_complete(listen)
+
+    def connect_to_initial_node(self):
+        """ Connect to the initial node if one is known. """
+
+        self.loop.create_datagram_endpoint(
+            lambda: DHTProtocol(self.bucket_tree, self.loop),
+            remote_addr=self.initial_node
+        )
 
     def run(self):
         """ Run the loop to start everything. """
@@ -49,3 +68,13 @@ class DHT:
             pass
 
         self.loop.close()
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description='A python DHT')
+    parser.add_argument('--initial-node', help='The initial node to connect to.')
+
+    args = parser.parse_args()
+
+    dht = DHT(args.initial_node)
+    dht.run()

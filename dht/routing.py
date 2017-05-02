@@ -1,6 +1,6 @@
-from dht.bucket import Bucket, BucketHasSelfException
-from dht import settings
-from dht.utils import hex_to_bin
+from .bucket import Bucket, BucketHasSelfException
+from .settings import KEY_SIZE
+from .utils import hex_to_bin
 
 
 
@@ -48,7 +48,7 @@ class BucketTree:
         bucket_node = self.root_bucket_node
         i = 0
 
-        while bucket_node.bucket is None and i < settings.KEY_SIZE:
+        while bucket_node.bucket is None and i < KEY_SIZE:
             if bin_key[i] == '1':
                 bucket_node = bucket_node.left
             else:
