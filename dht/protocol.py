@@ -12,3 +12,7 @@ class DHTProtocol(RUDPProtocol):
 
     def data_received(self, data):
         print(data)
+
+
+    def find_node(self, key):
+        self.connection.send("find_node {}".format(key))

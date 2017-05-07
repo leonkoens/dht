@@ -7,12 +7,16 @@ import asyncio
 import argparse
 import random
 import string
+import logging
 
 
 class DHT:
 
-    def __init__(self, initial_node=None):
+    def __init__(self, listen_port, initial_node=None):
         self.initial_node = initial_node
+        self.listen_port = listen_port
+
+        logging.debug("Listening on {}".format(self.listen_port))
 
         self.self_key = self.create_self_key()
         self.self_node = self.create_self_node()
@@ -46,7 +50,7 @@ class DHT:
 
         listen = self.loop.create_datagram_endpoint(
             lambda: DHTProtocol(self.bucket_tree, self.loop),
-            local_addr=('0.0.0.0', 9999)
+            local_addr=('0.0.0.0', self.listen_port)
         )
 
         self.loop.run_until_complete(listen)
@@ -54,10 +58,16 @@ class DHT:
     def connect_to_initial_node(self):
         """ Connect to the initial node if one is known. """
 
-        self.loop.create_datagram_endpoint(
+        logging.debug("Connecting to initial node: {}".format(self.initial_node))
+
+        connect = self.loop.create_datagram_endpoint(
             lambda: DHTProtocol(self.bucket_tree, self.loop),
             remote_addr=self.initial_node
         )
+
+        _, protocol = self.loop.run_until_complete(connect)
+
+        protocol.find_node(self.self_key)
 
     def run(self):
         """ Run the loop to start everything. """
@@ -71,10 +81,18 @@ class DHT:
 
 
 if __name__ == "__main__":
+    logging.basicConfig(level=logging.DEBUG)
+
     parser = argparse.ArgumentParser(description='A python DHT')
-    parser.add_argument('--initial-node', help='The initial node to connect to.')
+    parser.add_argument('--initial-node', '-n', help='The initial node to connect to (1.2.3.4:5678).')
+    parser.add_argument('--listen-port', '-p', default=9999, help='The port to listen on.')
 
     args = parser.parse_args()
 
-    dht = DHT(args.initial_node)
+    if args.initial_node is not None:
+        initial_node = tuple(args.initial_node.split(":"))
+    else:
+        initial_node = None
+
+    dht = DHT(args.listen_port, initial_node)
     dht.run()
