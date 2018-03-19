@@ -1,7 +1,8 @@
-from .bucket import Bucket, BucketHasSelfException
-from .settings import KEY_SIZE
-from .utils import hex_to_bin
+import logging
 
+from bucket import Bucket, BucketHasSelfException
+from settings import KEY_SIZE, BUCKET_SIZE
+from utils import hex_to_bin
 
 
 class BucketNode:
@@ -9,6 +10,7 @@ class BucketNode:
     value. """
 
     def __init__(self):
+        self.parent = None
         self.left = None
         self.right = None
         self.bucket = Bucket()
@@ -23,6 +25,8 @@ class BucketTree:
 
         self.add_node(self_node)
 
+        logging.debug("Bucket node list is not {:d} long".format(len(self.bucket_node_list)))
+
     def find_node(self, key):
         """ Find a node in the BucketTree. Raises NodeNotFound if the node isn't in
         the BucketTree. """
@@ -30,8 +34,49 @@ class BucketTree:
         node = bucket_node.bucket.find_node(key)
         return node
 
+    def find_nodes(self, key):
+        """ Find nodes in the BucketTree closest to the key. """
+
+        bucket_node = self._find_bucket_node(hex_to_bin(key))
+
+        nodes = []
+        visited = []
+        current = bucket_node
+        to_visit = []
+
+        # Don't add the parent is this is the root.
+        if bucket_node.parent is not None:
+            to_visit.append(bucket_node.parent)
+
+        while len(nodes) < BUCKET_SIZE:
+            # Start a tree traversal to search for similar nodes.
+
+            if current.bucket is not None:
+                nodes.extend(current.bucket.nodes)
+                visited.append(current)
+            elif current.left not in visited:
+                to_visit.append(current.left)
+            elif current.right not in visited:
+                to_visit.append(current.right)
+
+            try:
+                # Get the next node to check from the queue.
+                current = to_visit.pop(0)
+            except IndexError:
+                if current.parent is None:
+                    # We visited the whole tree so just stop looking any further.
+                    break
+
+                # Go up one level in the tree.
+                current = current.parent
+                visited.append(current)
+
+        return nodes
+
     def add_node(self, node):
         """ Add a Node (peer) to the tree. """
+
+        logging.debug("Adding node to tree: {:s}".format(node.key))
 
         key = node.get_bin_key()
         bucket_node = self._find_bucket_node(key)
@@ -61,6 +106,8 @@ class BucketTree:
     def _split_bucket_node(self, bucket_node):
         """ Split a BucketNode and its Bucket. """
 
+        logging.debug("Splitting a Bucket")
+
         bucket = bucket_node.bucket
         bucket_node.bucket = None
 
@@ -73,6 +120,9 @@ class BucketTree:
 
         bucket_node.left = left
         bucket_node.right = right
+
+        left.parent = bucket_node
+        right.parent = bucket_node
 
         for node in bucket.nodes:
             self.add_node(node)
