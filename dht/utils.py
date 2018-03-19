@@ -1,6 +1,5 @@
 import hashlib
-
-from .settings import KEY_SIZE
+from settings import KEY_SIZE
 
 
 def hash_string(value):

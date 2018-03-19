@@ -1,13 +1,14 @@
 import datetime
 
-from .utils import hex_to_bin
+from utils import hex_to_bin
 
 
 class Node:
     """ A node (peer) in the DHT. """
 
-    def __init__(self, key, host=None, port=None, last_seen=None):
+    def __init__(self, key, protocol=None, last_seen=None):
         self.key = key
+        self.protocol = protocol
 
         # Set last_seen to now()
         if last_seen is None:
@@ -18,7 +19,7 @@ class Node:
 
     def get_bin_key(self):
         """ Return the binary representation of the key. The key should always be a
-        hexidecimal. """
+        hexadecimal. """
         return hex_to_bin(self.key)
 
 

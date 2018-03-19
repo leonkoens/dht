@@ -1,5 +1,5 @@
-from .settings import BUCKET_SIZE, BUCKET_REPLACEMENT_CACHE_SIZE
-from .node import SelfNode
+from node import SelfNode
+from settings import BUCKET_SIZE, BUCKET_REPLACEMENT_CACHE_SIZE
 
 
 class BucketHasSelfException(Exception):
@@ -62,7 +62,7 @@ class Bucket:
             raise NodeNotFoundException()
 
     def remove_node(self, key):
-        """ Remode and return a Node from this Bucket. """
+        """ Remove and return a Node from this Bucket. """
         (node, index) = next(
             (self.nodes[i], i) for i in range(len(self.nodes)) if self.nodes[i].key == key)
         del self.nodes[index]
