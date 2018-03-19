@@ -1,13 +1,15 @@
-from .utils import hash_string
-from .node import SelfNode
-from .routing import BucketTree
-from .protocol import DHTProtocol
-
 import asyncio
 import argparse
+import importlib
 import random
 import string
 import logging
+
+import settings
+from node import SelfNode
+from protocol import DHTServerProtocol, DHTClientProtocol
+from routing import BucketTree
+from utils import hash_string
 
 
 class DHT:
@@ -18,6 +20,7 @@ class DHT:
 
         logging.debug("Listening on {}".format(self.listen_port))
 
+        self.value_store = self.create_value_store()
         self.self_key = self.create_self_key()
         self.self_node = self.create_self_node()
         self.bucket_tree = self.create_bucket_tree()
@@ -29,14 +32,25 @@ class DHT:
         if self.initial_node is not None:
             self.connect_to_initial_node()
 
+        self.loop.create_task(self.refresh_nodes())
+
+    def create_value_store(self):
+        """ Create a Store to store values in. """
+        module = importlib.import_module('value_stores.' + settings.VALUE_STORE)
+        value_store_class = getattr(module, 'MemoryStore')
+        return value_store_class()
+
     def create_self_key(self):
-        """ Create a key with which we will identify ourself. """
+        """ Create a key with which we will identify ourselves. """
         key = hash_string(
             ''.join([random.choice(string.ascii_letters) for _ in range(160)]))
+
+        logging.debug("Our key is {}".format(key))
+
         return key
 
     def create_self_node(self):
-        """ Create a Node to repesent ourself. """
+        """ Create a Node to represent ourselves. """
         self_node = SelfNode(key=self.self_key)
         return self_node
 
@@ -46,11 +60,12 @@ class DHT:
         return tree
 
     def create_server(self):
-        """ Create the UDP server to listen for incoming connections. """
+        """ Create the server to listen for incoming connections. """
 
-        listen = self.loop.create_datagram_endpoint(
-            lambda: DHTProtocol(self.bucket_tree, self.loop),
-            local_addr=('0.0.0.0', self.listen_port)
+        listen = self.loop.create_server(
+            lambda: DHTServerProtocol(self.self_key, self.bucket_tree, self.value_store),
+            '0.0.0.0',
+            self.listen_port
         )
 
         self.loop.run_until_complete(listen)
@@ -60,14 +75,33 @@ class DHT:
 
         logging.debug("Connecting to initial node: {}".format(self.initial_node))
 
-        connect = self.loop.create_datagram_endpoint(
-            lambda: DHTProtocol(self.bucket_tree, self.loop),
-            remote_addr=self.initial_node
+        connect = self.loop.create_connection(
+            lambda: DHTClientProtocol(self.self_key, self.bucket_tree, self.value_store),
+            self.initial_node[0],
+            int(self.initial_node[1])
         )
 
-        _, protocol = self.loop.run_until_complete(connect)
+        self.loop.run_until_complete(connect)
 
-        protocol.find_node(self.self_key)
+    async def refresh_nodes(self):
+
+        logging.debug("Refreshing nodes")
+        await asyncio.sleep(3)
+
+        nodes = self.bucket_tree.find_nodes(self.self_key)
+        find_futures = []
+
+        for node in nodes:
+            if node == self.self_node:
+                continue
+
+            find_futures.append(node.protocol.find_node(node.key))
+
+        results = await asyncio.gather(*find_futures, loop=self.loop)
+
+        import pdb;pdb.set_trace()
+        # TODO
+
 
     def run(self):
         """ Run the loop to start everything. """
@@ -84,8 +118,10 @@ if __name__ == "__main__":
     logging.basicConfig(level=logging.DEBUG)
 
     parser = argparse.ArgumentParser(description='A python DHT')
-    parser.add_argument('--initial-node', '-n', help='The initial node to connect to (1.2.3.4:5678).')
-    parser.add_argument('--listen-port', '-p', default=9999, help='The port to listen on.')
+    parser.add_argument(
+        '--initial-node', '-n', help='The initial node to connect to (1.2.3.4:5678).')
+    parser.add_argument(
+        '--listen-port', '-p', default=9999, help='The port to listen on.')
 
     args = parser.parse_args()
 
