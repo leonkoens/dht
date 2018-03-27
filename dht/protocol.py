@@ -5,6 +5,75 @@ import logging
 from node import Node
 
 
+class Message:
+
+    MESSAGE_ID = 0
+
+    def __init__(self, msg_id, data, command=None):
+        self.id = msg_id
+        self.data = data
+        self.command = command
+
+        if command:
+            self.future = asyncio.Future()
+
+    def get_bytes(self):
+        """ Get the bytes of the message, include the command if it is defined.
+
+        :return: str
+        """
+        message = {
+            "id": self.id,
+            "data": self.data,
+        }
+
+        if self.command:
+            message["command"] = self.command
+
+        message_json = json.dumps(message)
+        message_encoded = message_json.encode()
+
+        return message_encoded
+
+    @staticmethod
+    def create(command, data):
+        """ Create a new Message with the given command and data.
+
+        :param command: str
+        :param data: str
+        :return: Message
+        """
+        message = Message(Message.MESSAGE_ID, data, command)
+        Message.MESSAGE_ID += 1
+        return message
+
+    @staticmethod
+    def from_bytes(data):
+        """ Create a Message from the given data.
+
+        :param data: str
+        :return: Message
+        """
+        data = json.loads(data.decode())
+
+        if 'command' not in data:
+            data['command'] = None
+
+        message = Message(data['id'], data['data'], data['command'])
+        return message
+
+    @staticmethod
+    def create_reponse(message, data):
+        """ Create a response on the given Message.
+
+        :param message: Message
+        :param data: str
+        :return: Message
+        """
+        message = Message(message.id, data)
+        return message
+
+
 class DHTProtocol(asyncio.Protocol):
 
     def __init__(self, self_key, bucket_tree, value_store):
@@ -15,55 +84,33 @@ class DHTProtocol(asyncio.Protocol):
         self.transport = None
         self.node = None
 
-        self.message_id = 0
         self.messages = {}
-
-    def get_message_id(self):
-        """ Get the next message id, just increment our counter. """
-        self.message_id += 1
-        return self.message_id
-
-    def create_message(self, command, data):
-        """ Create a new message. """
-        message = {
-            "id": self.get_message_id(),
-            "command": command,
-            "data": data,
-            "future": asyncio.Future(),
-        }
-        return message
 
     def send_message(self, message):
         """ Send a message to the other end, only send the id, command and
         data keys of the message. """
-        self.messages[message['id']] = message
 
-        data = json.dumps({
-            'id': message['id'],
-            'command': message['command'],
-            'data': message['data'],
-        })
-
-        logging.debug("Sending: {:s}".format(data))
-        self.transport.write(data.encode())
+        self.messages[message.id] = message
+        data = message.get_bytes()
+        logging.debug("Sending: {:s}".format(data.decode()))
+        self.transport.write(data)
 
     def data_received(self, data):
-        """ Receive data from the other end, determine if it is a command or a
+        """Receive data from the other end, determine if it is a command or a
         response and act accordingly. """
-        data = data.decode()
+
+        message = Message.from_bytes(data)
 
         logging.debug("Data received: ")
         logging.debug(data)
 
-        data = json.loads(data)
-
-        if 'command' in data:
-            self.command_received(data)
+        if message.command:
+            self.command_received(message)
 
         else:
-            self.response_received(data)
+            self.response_received(message)
 
-    def command_received(self, data):
+    def command_received(self, message):
         """ Receive a command, call the right handle and write the response. """
         commands = {
             "identify": self.handle_identify,
@@ -73,38 +120,39 @@ class DHTProtocol(asyncio.Protocol):
         }
 
         # Get the appropriate command.
-        command = commands[data['command']]
+        command = commands[message.command]
 
-        response = command(data['data'])
+        # Call the command to get the response.
+        response = command(message.data)
 
         if response:
-
             # Create a response message with the data from the command.
-            message = json.dumps({
-                "id": data['id'],
-                "data": response
-            })
+            message = Message.create_reponse(message, response)
+            data = message.get_bytes()
 
-            logging.debug("Sending response: {:s}".format(message))
+            logging.debug("Sending response: {:s}".format(data.decode()))
 
-            self.transport.write(message.encode())
+            self.transport.write(data)
 
-    def response_received(self, data):
+    def response_received(self, message):
         """ Receive a response, set the result of the Future. """
-        message_id = data['id']
-        message = self.messages[message_id]
-        message['future'].set_result(data)
+
+        orig_message = self.messages[message.id]
+        orig_message.future.set_result(message.data)
 
         response_handlers = {
+            "identify": self.handle_identify_response,
             "find_node": self.handle_find_response,
             "find_value": self.handle_find_response,
         }
 
-        if message['command'] in response_handlers:
-            response_handlers[message['command']](data)
+        if orig_message.command in response_handlers:
+            response_handlers[orig_message.command](message.data)
+
+        del self.messages[message.id]
 
     def identify(self):
-        message = self.create_message("identify", {
+        message = Message.create('identify', {
             "key": self.self_key,
             "request_key": self.node is None,
         })
@@ -132,7 +180,7 @@ class DHTProtocol(asyncio.Protocol):
 
         if data["request_key"]:
             return {
-                "id": self.self_key,
+                "key": self.self_key,
                 "request_key": False,
             }
 
@@ -155,7 +203,21 @@ class DHTProtocol(asyncio.Protocol):
     def handle_store(self, data):
         self.value_store.store(data)
 
+    def handle_identify_response(self, data):
+        """
+        Handle the response on our identify() request, add the Node.
+
+        :param data: dict
+        """
+
+        self.node = Node(data["key"], self)
+        self.routing.add_node(self.node)
+
     def handle_find_response(self, data):
+        """
+        Handle the response on our find_value or find_node request.
+        :param data: mixed
+        """
 
         # When the data is from find_value it can be just the value.
         if type(data) != list:
@@ -179,6 +241,5 @@ class DHTClientProtocol(DHTProtocol):
     def connection_made(self, transport):
         logging.debug("Connection made with {}".format(transport))
         self.transport = transport
-
         self.identify()
 
