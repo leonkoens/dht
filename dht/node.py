@@ -6,8 +6,10 @@ from utils import hex_to_bin
 class Node:
     """ A node (peer) in the DHT. """
 
-    def __init__(self, key, protocol=None, last_seen=None):
+    def __init__(self, key, address, port, protocol=None, last_seen=None):
         self.key = key
+        self.address = address
+        self.port = port
         self.protocol = protocol
 
         # Set last_seen to now()
@@ -21,6 +23,9 @@ class Node:
         """ Return the binary representation of the key. The key should always be a
         hexadecimal. """
         return hex_to_bin(self.key)
+
+    def get_data(self):
+        return self.key, self.address, self.port
 
 
 class SelfNode(Node):

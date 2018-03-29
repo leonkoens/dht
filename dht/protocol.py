@@ -125,7 +125,7 @@ class DHTProtocol(asyncio.Protocol):
         # Call the command to get the response.
         response = command(message.data)
 
-        if response:
+        if response is not None:
             # Create a response message with the data from the command.
             message = Message.create_reponse(message, response)
             data = message.get_bytes()
@@ -160,9 +160,9 @@ class DHTProtocol(asyncio.Protocol):
         self.send_message(message)
 
     def find_node(self, key):
-        message = self.create_message("find_node", key)
+        message = Message.create('find_node', key)
         self.send_message(message)
-        return message['future']
+        return message.future
 
     def find_value(self, key):
         message = self.create_message("find_value", key)
@@ -175,7 +175,8 @@ class DHTProtocol(asyncio.Protocol):
         return message['future']
 
     def handle_identify(self, data):
-        self.node = Node(data["key"], self)
+        socket = self.transport.get_extra_info('peername')
+        self.node = Node(data["key"], socket[0], socket[1], self)
         self.routing.add_node(self.node)
 
         if data["request_key"]:
@@ -189,7 +190,7 @@ class DHTProtocol(asyncio.Protocol):
 
     def handle_find_node(self, key):
         """ Give back the closest nodes to the given key. """
-        return self.routing.find_nodes(key)
+        return [node.get_data() for node in self.routing.find_nodes(key)]
 
     def handle_find_value(self, key):
         try:
@@ -209,8 +210,8 @@ class DHTProtocol(asyncio.Protocol):
 
         :param data: dict
         """
-
-        self.node = Node(data["key"], self)
+        socket = self.transport.get_extra_info('peername')
+        self.node = Node(data["key"], socket[0], socket[1], self)
         self.routing.add_node(self.node)
 
     def handle_find_response(self, data):
@@ -224,9 +225,8 @@ class DHTProtocol(asyncio.Protocol):
             return
 
         for node in data:
-            node = Node(node['key'])
+            node = Node(node[0], node[1], node[2])
             self.routing.add_node(node)
-
 
 
 class DHTServerProtocol(DHTProtocol):

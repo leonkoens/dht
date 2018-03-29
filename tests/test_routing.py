@@ -17,7 +17,7 @@ class BucketTreeTest(unittest.TestCase):
 
     def get_new_tree(self):
         """ Helper function to get a new BucketTree. """
-        tree = BucketTree(SelfNode(key='0'))
+        tree = BucketTree(SelfNode('0', '127.0.0.1', '9999'))
         assert len(tree.bucket_node_list) == 1
         return tree
 
@@ -28,7 +28,7 @@ class BucketTreeTest(unittest.TestCase):
         tree = self.get_new_tree()
 
         # This node is right next to the SelfNode, this creates lots of Buckets.
-        node = Node(key='1')
+        node = Node('1', None, None)
         tree.add_node(node)
         assert len(tree.bucket_node_list) == settings.KEY_SIZE + 1
 
@@ -38,8 +38,8 @@ class BucketTreeTest(unittest.TestCase):
         tree = self.get_new_tree()
         key = hash_string('test')
 
-        node1 = Node(key=key)
-        node2 = Node(key=key)
+        node1 = Node(key, None, None)
+        node2 = Node(key, None, None)
 
         tree.add_node(node1)
 
@@ -53,7 +53,7 @@ class BucketTreeTest(unittest.TestCase):
         tree = self.get_new_tree()
         key = hash_string('test')
 
-        node1 = Node(key=key)
+        node1 = Node(key, None, None)
         tree.add_node(node1)
 
         # Looking for the key again should return the same Node.
@@ -74,12 +74,12 @@ class BucketTreeTest(unittest.TestCase):
         # Add keys in the same Bucket.
         for i in range(0, settings.BUCKET_SIZE + settings.BUCKET_REPLACEMENT_CACHE_SIZE):
             key = hex(dec_key + i)[2:]
-            node = Node(key=key)
+            node = Node(key, None, None)
             tree.add_node(node)
 
         i += 1
         key = hex(dec_key + i)[2:]
-        node = Node(key=key)
+        node = Node(key, None, None)
 
         # Bucket should be full by now.
         with self.assertRaises(BucketIsFullException):
@@ -91,7 +91,7 @@ class BucketTreeTest(unittest.TestCase):
 
         for i in range(18):
             key = hash_string(str(i))
-            node = Node(key=key)
+            node = Node(key, None, None)
             tree.add_node(node)
 
         nodes = tree.find_nodes(hash_string('test'))
@@ -99,13 +99,13 @@ class BucketTreeTest(unittest.TestCase):
         # 18 other nodes + self = 19.
         self.assertEqual(len(nodes), 19)
 
-        tree.add_node(Node(hash_string('extra')))
+        tree.add_node(Node(hash_string('extra'), None, None))
         nodes = tree.find_nodes(hash_string('test'))
 
         # 19 other nodes + self = 20.
         self.assertEqual(len(nodes), 20)
 
-        tree.add_node(Node(hash_string('more than 20')))
+        tree.add_node(Node(hash_string('more than 20'), None, None))
         nodes = tree.find_nodes(hash_string('test'))
 
         # 20 other nodes + self = 20 because of the bucket size.
