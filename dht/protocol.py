@@ -125,14 +125,13 @@ class DHTProtocol(asyncio.Protocol):
         # Call the command to get the response.
         response = command(message.data)
 
-        if response is not None:
-            # Create a response message with the data from the command.
-            message = Message.create_reponse(message, response)
-            data = message.get_bytes()
+        # Create a response message with the data from the command.
+        message = Message.create_reponse(message, response)
+        data = message.get_bytes()
 
-            logging.debug("Sending response: {:s}".format(data.decode()))
+        logging.debug("Sending response: {:s}".format(data.decode()))
 
-            self.transport.write(data)
+        self.transport.write(data)
 
     def response_received(self, message):
         """ Receive a response, set the result of the Future. """
@@ -165,14 +164,14 @@ class DHTProtocol(asyncio.Protocol):
         return message.future
 
     def find_value(self, key):
-        message = self.create_message("find_value", key)
+        message = Message.create('find_value', key)
         self.send_message(message)
-        return message['future']
+        return message.future
 
     def store(self, value):
-        message = self.create_message("store", value)
+        message = Message.create('store', value)
         self.send_message(message)
-        return message['future']
+        return message.future
 
     def handle_identify(self, data):
         socket = self.transport.get_extra_info('peername')
@@ -197,7 +196,7 @@ class DHTProtocol(asyncio.Protocol):
             value = self.value_store.retrieve(key)
 
         except KeyError:
-            value = self.routing.find_nodes(key)
+            value = [node.get_data() for node in self.routing.find_nodes(key)]
 
         return value
 
