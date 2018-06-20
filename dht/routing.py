@@ -1,6 +1,6 @@
 import logging
 
-from bucket import Bucket, BucketHasSelfException
+from bucket import Bucket, BucketHasSelfException, NodeAlreadyAddedException, BucketIsFullException
 from settings import KEY_SIZE, BUCKET_SIZE
 from utils import hex_to_bin
 
@@ -25,7 +25,7 @@ class BucketTree:
 
         self.add_node(self_node)
 
-        logging.debug("Bucket node list is not {:d} long".format(len(self.bucket_node_list)))
+        self.self_node = self_node
 
     def find_node(self, key):
         """ Find a node in the BucketTree. Raises NodeNotFound if the node isn't in
@@ -78,6 +78,10 @@ class BucketTree:
 
         logging.debug("Adding node to tree: {:s}".format(node.key))
 
+        if len(self.bucket_node_list) != 1 and self.self_node.key == node.key:
+            logging.debug("Self node already known")
+            return False
+
         key = node.get_bin_key()
         bucket_node = self._find_bucket_node(key)
 
@@ -87,6 +91,10 @@ class BucketTree:
             # Split the Bucket(Node) and add the node again.
             self._split_bucket_node(bucket_node)
             self.add_node(node)
+        except (BucketIsFullException, NodeAlreadyAddedException):
+            return False
+
+        return True
 
     def _find_bucket_node(self, bin_key):
         """ Find a BucketNode in the tree by the binary value of a key. """

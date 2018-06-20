@@ -6,7 +6,7 @@ from utils import hex_to_bin
 class Node:
     """ A node (peer) in the DHT. """
 
-    def __init__(self, key, address, port, protocol=None, last_seen=None):
+    def __init__(self, key, address=None, port=None, protocol=None, last_seen=None):
         self.key = key
         self.address = address
         self.port = port

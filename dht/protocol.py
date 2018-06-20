@@ -1,6 +1,7 @@
 import asyncio
 import json
 import logging
+from typing import Union
 
 from node import Node
 
@@ -9,7 +10,7 @@ class Message:
 
     MESSAGE_ID = 0
 
-    def __init__(self, msg_id, data, command=None):
+    def __init__(self, msg_id: int, data: Union[str, dict], command: str = None):
         self.id = msg_id
         self.data = data
         self.command = command
@@ -17,11 +18,8 @@ class Message:
         if command:
             self.future = asyncio.Future()
 
-    def get_bytes(self):
-        """ Get the bytes of the message, include the command if it is defined.
-
-        :return: str
-        """
+    def get_bytes(self) -> bytes:
+        """ Get the bytes of the message, include the command if it is defined. """
         message = {
             "id": self.id,
             "data": self.data,
@@ -36,19 +34,14 @@ class Message:
         return message_encoded
 
     @staticmethod
-    def create(command, data):
-        """ Create a new Message with the given command and data.
-
-        :param command: str
-        :param data: str
-        :return: Message
-        """
+    def create(command: str, data: Union[str, dict]) -> 'Message':
+        """ Create a new Message with the given command and data. """
         message = Message(Message.MESSAGE_ID, data, command)
         Message.MESSAGE_ID += 1
         return message
 
     @staticmethod
-    def from_bytes(data):
+    def from_bytes(data: bytes) -> 'Message':
         """ Create a Message from the given data.
 
         :param data: str
@@ -63,12 +56,8 @@ class Message:
         return message
 
     @staticmethod
-    def create_reponse(message, data):
+    def create_reponse(message: 'Message', data: Union[str, dict]) -> 'Message':
         """ Create a response on the given Message.
-
-        :param message: Message
-        :param data: str
-        :return: Message
         """
         message = Message(message.id, data)
         return message

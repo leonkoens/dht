@@ -31,8 +31,7 @@ class DHT:
 
         if self.initial_node is not None:
             self.connect_to_initial_node()
-
-        self.loop.create_task(self.refresh_nodes())
+            self.loop.create_task(self.refresh_nodes(key=self.self_key))
 
     def create_value_store(self):
         """ Create a Store to store values in. """
@@ -83,24 +82,33 @@ class DHT:
 
         self.loop.run_until_complete(connect)
 
-    async def refresh_nodes(self):
+    async def refresh_nodes(self, key=None, wait=None):
 
-        logging.debug("Refreshing nodes")
-        await asyncio.sleep(3)
+        while True:
 
-        nodes = self.bucket_tree.find_nodes(self.self_key)
-        find_futures = []
+            if wait is None:
+                wait = 3
 
-        for node in nodes:
-            if node == self.self_node:
-                continue
+            # TODO maximum wait in the settings
+            wait = min(wait * 2, 30)
 
-            find_futures.append(node.protocol.find_node(node.key))
+            logging.debug("refresh_node sleeping {:d} seconds".format(wait))
+            await asyncio.sleep(wait)
 
-        results = await asyncio.gather(*find_futures, loop=self.loop)
+            nodes = self.bucket_tree.find_nodes(key)
+            find_futures = []
 
-        import pdb;pdb.set_trace()
-        # TODO
+            for node in nodes:
+                if node == self.self_node:
+                    continue
+
+                if node.protocol is None:
+                    continue
+
+                find_futures.append(node.protocol.find_node(key))
+
+            results = await asyncio.gather(*find_futures, loop=self.loop)
+
 
 
     def run(self):

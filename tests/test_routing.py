@@ -43,9 +43,9 @@ class BucketTreeTest(unittest.TestCase):
 
         tree.add_node(node1)
 
-        # Adding a Node with a key that is already in the tree should raise an Exception.
-        with self.assertRaises(NodeAlreadyAddedException):
-            tree.add_node(node2)
+        # Adding a Node with a key that is already in the tree should raise an Exception in add_node
+        # and it should return False.
+        self.assertFalse(tree.add_node(node2))
 
     def test_find_node(self):
         """ Find a Node in the BucketTree. """
@@ -82,8 +82,7 @@ class BucketTreeTest(unittest.TestCase):
         node = Node(key, None, None)
 
         # Bucket should be full by now.
-        with self.assertRaises(BucketIsFullException):
-            tree.add_node(node)
+        self.assertFalse(tree.add_node(node))
 
     def test_find_nodes(self):
 

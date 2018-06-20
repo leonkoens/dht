@@ -7,7 +7,8 @@ from protocol import DHTProtocol
 
 class DHTProtocolTest(unittest.TestCase):
 
-    def create_protocol(self, self_key=None):
+    @staticmethod
+    def create_protocol(self_key=None):
         """ Create a protocol for testing. """
 
         if self_key is None:
