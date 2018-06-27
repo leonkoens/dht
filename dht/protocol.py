@@ -42,11 +42,7 @@ class Message:
 
     @staticmethod
     def from_bytes(data: bytes) -> 'Message':
-        """ Create a Message from the given data.
-
-        :param data: str
-        :return: Message
-        """
+        """ Create a Message from the given data. """
         data = json.loads(data.decode())
 
         if 'command' not in data:
@@ -56,7 +52,7 @@ class Message:
         return message
 
     @staticmethod
-    def create_reponse(message: 'Message', data: Union[str, dict]) -> 'Message':
+    def create_response(message: 'Message', data: Union[str, dict]) -> 'Message':
         """ Create a response on the given Message.
         """
         message = Message(message.id, data)
@@ -65,10 +61,11 @@ class Message:
 
 class DHTProtocol(asyncio.Protocol):
 
-    def __init__(self, self_key, bucket_tree, value_store):
+    def __init__(self, self_key, bucket_tree, value_store, listen_port):
         self.self_key = self_key
         self.routing = bucket_tree
         self.value_store = value_store
+        self.listen_port = listen_port
 
         self.transport = None
         self.node = None
@@ -115,7 +112,7 @@ class DHTProtocol(asyncio.Protocol):
         response = command(message.data)
 
         # Create a response message with the data from the command.
-        message = Message.create_reponse(message, response)
+        message = Message.create_response(message, response)
         data = message.get_bytes()
 
         logging.debug("Sending response: {:s}".format(data.decode()))
@@ -143,6 +140,7 @@ class DHTProtocol(asyncio.Protocol):
         message = Message.create('identify', {
             "key": self.self_key,
             "request_key": self.node is None,
+            "listen_port": self.listen_port,
         })
 
         self.send_message(message)
@@ -164,7 +162,8 @@ class DHTProtocol(asyncio.Protocol):
 
     def handle_identify(self, data):
         socket = self.transport.get_extra_info('peername')
-        self.node = Node(data["key"], socket[0], socket[1], self)
+
+        self.node = Node(data["key"], socket[0], data['listen_port'], self)
         self.routing.add_node(self.node)
 
         if data["request_key"]:
@@ -192,12 +191,8 @@ class DHTProtocol(asyncio.Protocol):
     def handle_store(self, data):
         self.value_store.store(data)
 
-    def handle_identify_response(self, data):
-        """
-        Handle the response on our identify() request, add the Node.
-
-        :param data: dict
-        """
+    def handle_identify_response(self, data: dict) -> None:
+        """ Handle the response on our identify() request, add the Node. """
         socket = self.transport.get_extra_info('peername')
         self.node = Node(data["key"], socket[0], socket[1], self)
         self.routing.add_node(self.node)
@@ -230,4 +225,3 @@ class DHTClientProtocol(DHTProtocol):
         logging.debug("Connection made with {}".format(transport))
         self.transport = transport
         self.identify()
-

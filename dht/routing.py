@@ -134,3 +134,13 @@ class BucketTree:
 
         for node in bucket.nodes:
             self.add_node(node)
+
+    def get_unconnected_nodes(self) -> list:
+        """ Get the unconnected nodes in this BucketTree. """
+
+        unconnected = []
+
+        for bucket_node in self.bucket_node_list:
+            unconnected.extend(bucket_node.bucket.get_unconnected_nodes())
+
+        return unconnected

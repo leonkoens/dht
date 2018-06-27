@@ -1,3 +1,5 @@
+import logging
+
 from node import SelfNode
 from settings import BUCKET_SIZE, BUCKET_REPLACEMENT_CACHE_SIZE
 
@@ -74,3 +76,18 @@ class Bucket:
 
     def add_replacement(self, node):
         self.replacement_cache.append(node)
+
+    def get_unconnected_nodes(self) -> list:
+        """ Get the unconnected nodes in this Bucket. """
+
+        unconnected = []
+
+        for node in self.nodes:
+            if not node.is_connected():
+                unconnected.append(node)
+
+        for node in self.replacement_cache:
+            if not node.is_connected():
+                unconnected.append(node)
+
+        return unconnected

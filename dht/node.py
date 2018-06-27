@@ -1,4 +1,5 @@
 import datetime
+import logging
 
 from utils import hex_to_bin
 
@@ -26,6 +27,9 @@ class Node:
 
     def get_data(self):
         return self.key, self.address, self.port
+
+    def is_connected(self) -> bool:
+        return self.protocol is not None or isinstance(self, SelfNode)
 
 
 class SelfNode(Node):

@@ -33,6 +33,8 @@ class DHT:
             self.connect_to_initial_node()
             self.loop.create_task(self.refresh_nodes(key=self.self_key))
 
+        self.loop.create_task(self.connect_to_unconnected_nodes())
+
     def create_value_store(self):
         """ Create a Store to store values in. """
         module = importlib.import_module('value_stores.' + settings.VALUE_STORE)
@@ -62,7 +64,8 @@ class DHT:
         """ Create the server to listen for incoming connections. """
 
         listen = self.loop.create_server(
-            lambda: DHTServerProtocol(self.self_key, self.bucket_tree, self.value_store),
+            lambda: DHTServerProtocol(
+                self.self_key, self.bucket_tree, self.value_store, self.listen_port),
             '0.0.0.0',
             self.listen_port
         )
@@ -75,7 +78,8 @@ class DHT:
         logging.debug("Connecting to initial node: {}".format(self.initial_node))
 
         connect = self.loop.create_connection(
-            lambda: DHTClientProtocol(self.self_key, self.bucket_tree, self.value_store),
+            lambda: DHTClientProtocol(
+                self.self_key, self.bucket_tree, self.value_store, self.listen_port),
             self.initial_node[0],
             int(self.initial_node[1])
         )
@@ -95,6 +99,7 @@ class DHT:
             logging.debug("refresh_node sleeping {:d} seconds".format(wait))
             await asyncio.sleep(wait)
 
+            # TODO key to search for should change
             nodes = self.bucket_tree.find_nodes(key)
             find_futures = []
 
@@ -109,7 +114,25 @@ class DHT:
 
             results = await asyncio.gather(*find_futures, loop=self.loop)
 
+    async def connect_to_unconnected_nodes(self):
 
+        while True:
+
+            await asyncio.sleep(1)
+
+            for node in self.bucket_tree.get_unconnected_nodes():
+                logging.debug(node)
+                connect = self.loop.create_connection(
+                    lambda: DHTClientProtocol(
+                        self.self_key, self.bucket_tree, self.value_store, self.listen_port),
+                    node.address,
+                    int(node.port)
+                )
+
+                _, protocol = await connect
+
+                node.protocol = protocol
+                protocol.node = node
 
     def run(self):
         """ Run the loop to start everything. """
