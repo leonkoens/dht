@@ -87,7 +87,6 @@ class DHTProtocol(asyncio.Protocol):
 
         message = Message.from_bytes(data)
 
-        logging.debug("Data received: ")
         logging.debug(data)
 
         if message.command:
@@ -98,6 +97,9 @@ class DHTProtocol(asyncio.Protocol):
 
     def command_received(self, message):
         """ Receive a command, call the right handle and write the response. """
+
+        logging.info("Message received with command: {}".format(message.command))
+
         commands = {
             "identify": self.handle_identify,
             "find_node": self.handle_find_node,
@@ -110,6 +112,8 @@ class DHTProtocol(asyncio.Protocol):
 
         # Call the command to get the response.
         response = command(message.data)
+
+        logging.info("Sending response on command: {}".format(message.command))
 
         # Create a response message with the data from the command.
         message = Message.create_response(message, response)
@@ -124,6 +128,8 @@ class DHTProtocol(asyncio.Protocol):
 
         orig_message = self.messages[message.id]
         orig_message.future.set_result(message.data)
+
+        logging.info("Response received on command: {}".format(orig_message.command))
 
         response_handlers = {
             "identify": self.handle_identify_response,
@@ -215,13 +221,13 @@ class DHTProtocol(asyncio.Protocol):
 class DHTServerProtocol(DHTProtocol):
 
     def connection_made(self, transport):
-        logging.debug("Connection made with {}".format(transport))
+        logging.info("Connection made with {}".format(transport))
         self.transport = transport
 
 
 class DHTClientProtocol(DHTProtocol):
 
     def connection_made(self, transport):
-        logging.debug("Connection made with {}".format(transport))
+        logging.info("Connection made with {}".format(transport))
         self.transport = transport
         self.identify()

@@ -76,10 +76,7 @@ class BucketTree:
     def add_node(self, node):
         """ Add a Node (peer) to the tree. """
 
-        logging.debug("Adding node to tree: {:s}".format(node.key))
-
         if len(self.bucket_node_list) != 1 and self.self_node.key == node.key:
-            logging.debug("Self node already known")
             return False
 
         key = node.get_bin_key()
@@ -94,6 +91,7 @@ class BucketTree:
         except (BucketIsFullException, NodeAlreadyAddedException):
             return False
 
+        logging.info("Added node to tree: {:s}".format(node.key))
         return True
 
     def _find_bucket_node(self, bin_key):

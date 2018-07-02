@@ -18,7 +18,7 @@ class DHT:
         self.initial_node = initial_node
         self.listen_port = listen_port
 
-        logging.debug("Listening on {}".format(self.listen_port))
+        logging.info("Listening on {}".format(self.listen_port))
 
         self.value_store = self.create_value_store()
         self.self_key = self.create_self_key()
@@ -46,7 +46,7 @@ class DHT:
         key = hash_string(
             ''.join([random.choice(string.ascii_letters) for _ in range(160)]))
 
-        logging.debug("Our key is {}".format(key))
+        logging.info("Our key is {}".format(key))
 
         return key
 
@@ -75,7 +75,7 @@ class DHT:
     def connect_to_initial_node(self):
         """ Connect to the initial node if one is known. """
 
-        logging.debug("Connecting to initial node: {}".format(self.initial_node))
+        logging.info("Connecting to initial node: {}".format(self.initial_node))
 
         connect = self.loop.create_connection(
             lambda: DHTClientProtocol(
@@ -146,7 +146,6 @@ class DHT:
 
 
 if __name__ == "__main__":
-    logging.basicConfig(level=logging.DEBUG)
 
     parser = argparse.ArgumentParser(description='A python DHT')
     parser.add_argument(
@@ -154,7 +153,16 @@ if __name__ == "__main__":
     parser.add_argument(
         '--listen-port', '-p', default=9999, help='The port to listen on.')
 
+    parser.add_argument('-v', action='store_true', dest='verbose_info', help='Verbose')
+    parser.add_argument('-vv', action='store_true', dest='verbose_debug', help='More verbose')
+
     args = parser.parse_args()
+
+    if args.verbose_debug:
+        logging.basicConfig(level=logging.DEBUG)
+
+    if args.verbose_info:
+        logging.basicConfig(level=logging.INFO)
 
     if args.initial_node is not None:
         initial_node = tuple(args.initial_node.split(":"))
