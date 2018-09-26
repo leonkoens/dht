@@ -1,9 +1,10 @@
 import asyncio
 import json
 import logging
+
 from typing import Union
 
-from node import Node
+from dht.node import Node
 
 
 class Message:

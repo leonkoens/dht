@@ -1,11 +1,11 @@
 import unittest
 
-from node import Node, SelfNode
-from routing import BucketTree
-from utils import hash_string
+from dht import settings
 
-from bucket import NodeAlreadyAddedException, BucketIsFullException
-import settings
+from dht.bucket import NodeAlreadyAddedException, BucketIsFullException
+from dht.node import Node, SelfNode
+from dht.routing import BucketTree
+from dht.utils import hash_string
 
 
 class BucketTreeTest(unittest.TestCase):
@@ -18,7 +18,7 @@ class BucketTreeTest(unittest.TestCase):
     def get_new_tree(self):
         """ Helper function to get a new BucketTree. """
         tree = BucketTree(SelfNode('0', '127.0.0.1', '9999'))
-        assert len(tree.bucket_node_list) == 1
+        assert len(tree.bucket_node_list) == 3
         return tree
 
     def test_add_neighbour(self):
@@ -30,7 +30,10 @@ class BucketTreeTest(unittest.TestCase):
         # This node is right next to the SelfNode, this creates lots of Buckets.
         node = Node('1', None, None)
         tree.add_node(node)
-        assert len(tree.bucket_node_list) == settings.KEY_SIZE + 1
+
+        # KEY_SIZE * 2 because of left and right nodes, plus one because of the root.
+        expected_amount = settings.KEY_SIZE * 2 + 1
+        assert len(tree.bucket_node_list) == expected_amount
 
     def test_add_node_twice(self):
         """ Add a Node twice. This should raise a NodeAlreadyAddedException. """

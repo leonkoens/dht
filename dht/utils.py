@@ -1,5 +1,6 @@
 import hashlib
-from settings import KEY_SIZE
+
+from dht import settings
 
 
 def hash_string(value):
@@ -7,4 +8,4 @@ def hash_string(value):
 
 
 def hex_to_bin(value):
-    return bin(int(value, 16))[2:].zfill(KEY_SIZE)
+    return bin(int(value, 16))[2:].zfill(settings.KEY_SIZE)

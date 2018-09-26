@@ -1,7 +1,7 @@
 import logging
 
-from node import SelfNode
-from settings import BUCKET_SIZE, BUCKET_REPLACEMENT_CACHE_SIZE
+from dht.node import SelfNode
+from dht.settings import BUCKET_SIZE, BUCKET_REPLACEMENT_CACHE_SIZE
 
 
 class BucketHasSelfException(Exception):
@@ -91,3 +91,4 @@ class Bucket:
                 unconnected.append(node)
 
         return unconnected
+

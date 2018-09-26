@@ -1,8 +1,9 @@
 import unittest
+
 from unittest import mock
 
-from node import Node
-from protocol import DHTProtocol
+from dht.node import Node
+from dht.protocol import DHTProtocol
 
 
 class DHTProtocolTest(unittest.TestCase):
@@ -17,7 +18,7 @@ class DHTProtocolTest(unittest.TestCase):
         bucket_tree = mock.Mock()
         value_store = mock.Mock()
 
-        protocol = DHTProtocol(self_key, bucket_tree, value_store)
+        protocol = DHTProtocol(self_key, bucket_tree, value_store, 1234)
         transport = mock.Mock()
         protocol.transport = transport
 
@@ -252,8 +253,3 @@ class DHTProtocolTest(unittest.TestCase):
         # There shouldn't be any messages left.
         self.assertTrue(len(protocol_a.messages) == 0)
         self.assertTrue(future.done())
-
-
-
-
-

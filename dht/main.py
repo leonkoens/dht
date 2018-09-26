@@ -1,15 +1,17 @@
-import asyncio
 import argparse
+import asyncio
 import importlib
-import random
-import string
 import logging
-
+import random
 import settings
-from node import SelfNode
-from protocol import DHTServerProtocol, DHTClientProtocol
-from routing import BucketTree
-from utils import hash_string
+import string
+
+from collections import deque
+
+from dht.node import SelfNode
+from dht.protocol import DHTServerProtocol, DHTClientProtocol
+from dht.routing import BucketTree
+from dht.utils import hash_string
 
 
 class DHT:
@@ -88,6 +90,8 @@ class DHT:
 
     async def refresh_nodes(self, key=None, wait=None):
 
+        to_check = deque([key])
+
         while True:
 
             if wait is None:
@@ -99,20 +103,26 @@ class DHT:
             logging.debug("refresh_node sleeping {:d} seconds".format(wait))
             await asyncio.sleep(wait)
 
-            # TODO key to search for should change
-            nodes = self.bucket_tree.find_nodes(key)
-            find_futures = []
+            try:
 
-            for node in nodes:
-                if node == self.self_node:
-                    continue
+                while True:
+                    search_key = to_check.pop()
 
-                if node.protocol is None:
-                    continue
+                    nodes = self.bucket_tree.find_nodes(search_key)
+                    find_futures = []
 
-                find_futures.append(node.protocol.find_node(key))
+                    for node in nodes:
+                        if node == self.self_node or node.protocol is None:
+                            continue
 
-            results = await asyncio.gather(*find_futures, loop=self.loop)
+                        node.protocol.find_node(search_key)
+
+            except IndexError:
+
+                for bucket_node in self.bucket_tree.get_leaf_bucket_nodes(include_self=False):
+                    bucket_node_range = bucket_node.get_range()
+                    key = hex(random.randrange(bucket_node_range[0], bucket_node_range[1]))[2:]
+                    to_check.appendleft(key)
 
     async def connect_to_unconnected_nodes(self):
 

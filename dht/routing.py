@@ -1,8 +1,8 @@
 import logging
 
-from bucket import Bucket, BucketHasSelfException, NodeAlreadyAddedException, BucketIsFullException
-from settings import KEY_SIZE, BUCKET_SIZE
-from utils import hex_to_bin
+from dht.bucket import Bucket, BucketHasSelfException, NodeAlreadyAddedException, BucketIsFullException
+from dht.settings import KEY_SIZE, BUCKET_SIZE
+from dht.utils import hex_to_bin
 
 
 class BucketNode:
@@ -14,27 +14,62 @@ class BucketNode:
         self.left = None
         self.right = None
         self.bucket = Bucket()
+        self.route = ""
+
+    def split(self) -> tuple:
+        """ Make this node a inner node and create two new leaf nodes, a right
+        and left BucketNode """
+
+        # Create a left BucketNode.
+        left = BucketNode()
+        left.route = self.route + "1"
+        left.parent = self
+
+        self.left = left
+
+        # Create a right BucketNode.
+        right = BucketNode()
+        right.route = self.route + "0"
+        right.parent = self
+
+        self.right = right
+
+        self.bucket = None
+
+        return (left, right)
+
+    def get_range(self) -> tuple:
+        """ Get the range of this node. """
+        self.route
+
+        current = self.parent.right
+        while len(current.bucket.nodes) == 0:
+            current = current.left
+
+        return (int(self.route.zfill(KEY_SIZE), 2), int(current.route.zfill(KEY_SIZE)), 2)
 
 
 class BucketTree:
     """ The routing tree of Kademlia. This routing tree holds the (K-)Buckets. """
 
-    def __init__(self, self_node):
-        self.root_bucket_node = BucketNode()
-        self.bucket_node_list = [self.root_bucket_node]
+    def __init__(self, self_node) -> None:
+        root = BucketNode()
+        left, right = root.split()
+
+        self.root_bucket_node = root
+        self.bucket_node_list = [root, left, right]
+        self.self_node = self_node
 
         self.add_node(self_node)
 
-        self.self_node = self_node
-
-    def find_node(self, key):
+    def find_node(self, key) -> 'Node':
         """ Find a node in the BucketTree. Raises NodeNotFound if the node isn't in
         the BucketTree. """
         bucket_node = self._find_bucket_node(hex_to_bin(key))
         node = bucket_node.bucket.find_node(key)
         return node
 
-    def find_nodes(self, key):
+    def find_nodes(self, key) -> list:
         """ Find nodes in the BucketTree closest to the key. """
 
         bucket_node = self._find_bucket_node(hex_to_bin(key))
@@ -73,11 +108,10 @@ class BucketTree:
 
         return nodes
 
-    def add_node(self, node):
+    def add_node(self, node) -> None:
         """ Add a Node (peer) to the tree. """
 
-        if len(self.bucket_node_list) != 1 and self.self_node.key == node.key:
-            return False
+        logging.info("Adding node to tree: {:s}".format(node.key))
 
         key = node.get_bin_key()
         bucket_node = self._find_bucket_node(key)
@@ -94,7 +128,7 @@ class BucketTree:
         logging.info("Added node to tree: {:s}".format(node.key))
         return True
 
-    def _find_bucket_node(self, bin_key):
+    def _find_bucket_node(self, bin_key) -> BucketNode:
         """ Find a BucketNode in the tree by the binary value of a key. """
         bucket_node = self.root_bucket_node
         i = 0
@@ -109,27 +143,18 @@ class BucketTree:
 
         return bucket_node
 
-    def _split_bucket_node(self, bucket_node):
+    def _split_bucket_node(self, bucket_node) -> None:
         """ Split a BucketNode and its Bucket. """
 
         logging.debug("Splitting a Bucket")
 
         bucket = bucket_node.bucket
-        bucket_node.bucket = None
+        left, right = bucket_node.split()
 
-        left = BucketNode()
-        right = BucketNode()
-
-        self.bucket_node_list.remove(bucket_node)
         self.bucket_node_list.append(left)
         self.bucket_node_list.append(right)
 
-        bucket_node.left = left
-        bucket_node.right = right
-
-        left.parent = bucket_node
-        right.parent = bucket_node
-
+        # Re-add all the nodes in Bucket that is now unreachable.
         for node in bucket.nodes:
             self.add_node(node)
 
@@ -138,7 +163,23 @@ class BucketTree:
 
         unconnected = []
 
-        for bucket_node in self.bucket_node_list:
+        for bucket_node in self.get_leaf_bucket_nodes(include_self=False):
             unconnected.extend(bucket_node.bucket.get_unconnected_nodes())
 
         return unconnected
+
+    def get_leaf_bucket_nodes(self, include_self=False) -> list:
+        """ Get the leaf bucket nodes; those that actually hold nodes.  """
+
+        bucket_nodes = []
+
+        for bucket_node in self.bucket_node_list:
+
+            if bucket_node.bucket is not None:
+
+                if bucket_node.bucket.has_self and not include_self:
+                    continue
+
+                bucket_nodes.append(bucket_node)
+
+        return bucket_nodes

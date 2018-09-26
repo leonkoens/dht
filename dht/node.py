@@ -1,7 +1,6 @@
 import datetime
-import logging
 
-from utils import hex_to_bin
+from dht.utils import hex_to_bin
 
 
 class Node:
