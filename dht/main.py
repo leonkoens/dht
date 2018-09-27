@@ -109,7 +109,6 @@ class DHT:
                     search_key = to_check.pop()
 
                     nodes = self.bucket_tree.find_nodes(search_key)
-                    find_futures = []
 
                     for node in nodes:
                         if node == self.self_node or node.protocol is None:
@@ -170,9 +169,11 @@ if __name__ == "__main__":
 
     if args.verbose_debug:
         logging.basicConfig(level=logging.DEBUG)
+        logging.debug('Setting logging level to debug')
 
     if args.verbose_info:
         logging.basicConfig(level=logging.INFO)
+        logging.info('Setting logging level to info')
 
     if args.initial_node is not None:
         initial_node = tuple(args.initial_node.split(":"))
