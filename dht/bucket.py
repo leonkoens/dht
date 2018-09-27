@@ -36,17 +36,17 @@ class Bucket:
     def add_node(self, node):
         """ Add a node to this bucket. """
 
+        try:
+            self.find_node(node.key)
+            raise NodeAlreadyAddedException('This node is already in this Bucket.')
+        except NodeNotFoundException:
+            pass
+
         if self.has_self:
             raise BucketHasSelfException('This Bucket has SelfNode, split this Bucket.')
 
         if isinstance(node, SelfNode):
             self.has_self = True
-
-        try:
-            self.find_node(node.key)
-            raise NodeAlreadyAddedException()
-        except NodeNotFoundException:
-            pass
 
         if len(self.nodes) < self.nodes_size:
             self.nodes.append(node)
