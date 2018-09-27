@@ -40,13 +40,7 @@ class BucketNode:
 
     def get_range(self) -> tuple:
         """ Get the range of this node. """
-        self.route
-
-        current = self.parent.right
-        while len(current.bucket.nodes) == 0:
-            current = current.left
-
-        return (int(self.route.zfill(KEY_SIZE), 2), int(current.route.zfill(KEY_SIZE)), 2)
+        return int(self.route.ljust(KEY_SIZE, '0'), 2), int(self.route.ljust(KEY_SIZE, '1'), 2)
 
 
 class BucketTree:
@@ -65,12 +59,14 @@ class BucketTree:
     def find_node(self, key) -> 'Node':
         """ Find a node in the BucketTree. Raises NodeNotFound if the node isn't in
         the BucketTree. """
+        logging.debug("Finding node {}".format(key))
         bucket_node = self._find_bucket_node(hex_to_bin(key))
         node = bucket_node.bucket.find_node(key)
         return node
 
     def find_nodes(self, key) -> list:
         """ Find nodes in the BucketTree closest to the key. """
+        logging.debug("Finding nodes close to {}".format(key))
 
         bucket_node = self._find_bucket_node(hex_to_bin(key))
 
@@ -108,12 +104,13 @@ class BucketTree:
 
         return nodes
 
-    def add_node(self, node) -> None:
+    def add_node(self, node) -> bool:
         """ Add a Node (peer) to the tree. """
 
         logging.info("Adding node to tree: {:s}".format(node.key))
 
         key = node.get_bin_key()
+
         bucket_node = self._find_bucket_node(key)
 
         try:

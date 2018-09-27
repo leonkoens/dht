@@ -4,7 +4,7 @@ from dht import settings
 
 from dht.bucket import NodeAlreadyAddedException, BucketIsFullException
 from dht.node import Node, SelfNode
-from dht.routing import BucketTree
+from dht.routing import BucketTree, BucketNode
 from dht.utils import hash_string
 
 
@@ -113,4 +113,47 @@ class BucketTreeTest(unittest.TestCase):
         # 20 other nodes + self = 20 because of the bucket size.
         self.assertEqual(len(nodes), 20)
 
+
+class BucketNodeTest(unittest.TestCase):
+
+    def test_split(self):
+
+        bucket_node = BucketNode()
+
+        self.assertTrue(bucket_node.bucket is not None)
+        self.assertEqual(bucket_node.left, None)
+        self.assertEqual(bucket_node.right, None)
+
+        left, right = bucket_node.split()
+
+        self.assertEqual(left.parent, bucket_node)
+        self.assertEqual(right.parent, bucket_node)
+
+        self.assertEqual(left.route, '1')
+        self.assertEqual(right.route, '0')
+
+        self.assertTrue(bucket_node.bucket is None)
+        self.assertEqual(bucket_node.left, left)
+        self.assertEqual(bucket_node.right, right)
+
+
+    def test_range(self):
+
+        max_range = pow(2, settings.KEY_SIZE) - 1
+
+        bucket_node = BucketNode()
+        bucket_node.route = '0'
+
+        bucket_node_range = bucket_node.get_range()
+
+        self.assertEqual(bucket_node_range[0], 0)
+        self.assertEqual(float(bucket_node_range[1]), max_range / 2)
+
+        bucket_node = BucketNode()
+        bucket_node.route = '1'
+
+        bucket_node_range = bucket_node.get_range()
+
+        self.assertEqual(float(bucket_node_range[0]), max_range / 2)
+        self.assertEqual(bucket_node_range[1], max_range)
 
