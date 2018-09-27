@@ -1,4 +1,4 @@
-# Distributes Hash Table
+# Distributed Hash Table
 
 This is a [Kademlia distributed hash table](http://en.wikipedia.org/wiki/Kademlia) build in `Python >= 3.5` with [asyncio](https://docs.python.org/3.5/library/asyncio.html).
 
